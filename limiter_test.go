@@ -17,8 +17,9 @@ func TestLimiter(t *testing.T) {
 	var wg sync.WaitGroup
 	var count int32
 
-	fn := func(context.Context) {
+	fn := func(ctx context.Context) error {
 		atomic.AddInt32(&count, 1)
+		return nil
 	}
 
 	start := time.Now()
@@ -49,9 +50,9 @@ func TestLimiterActiveJobs(t *testing.T) {
 	l := NewLimiter(limit, interval)
 
 	var wg sync.WaitGroup
-
-	fn := func(context.Context) {
+	fn := func(ctx context.Context) error {
 		time.Sleep(500 * time.Millisecond)
+		return nil
 	}
 
 	for range 4 {

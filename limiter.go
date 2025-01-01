@@ -30,12 +30,12 @@ func NewLimiter(limit int, interval time.Duration) *Limiter {
 	}
 }
 
-// Run runs the given function if the limit has not been reached. Blocks until a token is available and the function is returned.
-func (l *Limiter) Run(ctx context.Context, fn func(ctx context.Context)) {
+// Run runs the given function if the limit has not been reached. Run blocks, it is designed to run within a go routine.
+func (l *Limiter) Run(ctx context.Context, fn func(ctx context.Context) error) error {
 	// block until a token is available
 	select {
 	case <-ctx.Done():
-		return
+		return ctx.Err()
 	case <-l.tokens:
 	}
 
@@ -45,12 +45,12 @@ func (l *Limiter) Run(ctx context.Context, fn func(ctx context.Context)) {
 		l.tokens <- struct{}{}
 	}()
 
+	l.activeJobs.Add(1)
 	defer func() {
 		l.activeJobs.Add(-1)
 	}()
 
-	l.activeJobs.Add(1)
-	fn(ctx)
+	return fn(ctx)
 }
 
 func (l *Limiter) ActiveJobs() int32 {
