@@ -85,5 +85,5 @@ func (r *Runner) ActiveJobs() int32 {
 
 // Close cleans up any lingering goroutines. No more jobs can be started after Close is called
 func (r *Runner) Close() {
-	r.close <- struct{}{}
+	close(r.close)
 }
