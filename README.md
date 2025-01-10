@@ -3,7 +3,12 @@
 ## Runner
 
 ### Motivation
-Runner is designed to facilitate working with rate-limited api's. It starts jobs at the specified limited/staggered rate, regardless of when previous jobs finish.
+Runner is designed to facilitate working with rate-limited api's. It starts jobs at the specified, staggered rate, regardless of when previous jobs finish.
+
+### Install
+```shell
+go get github.com/njayp/limiter
+```
 
 ### Examples
 As a basic example, let's send 1000 requests at 200 requests per minute.
