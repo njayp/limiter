@@ -8,56 +8,24 @@ import (
 	"time"
 )
 
-func TestLimiter(t *testing.T) {
-	ctx := context.Background()
-	limit := 5
-	interval := time.Second
-	stagger := 100 * time.Millisecond
-	r := NewRunner(limit, interval, stagger)
-
-	var wg sync.WaitGroup
-	var count int32
-
-	fn := func(ctx context.Context) error {
-		atomic.AddInt32(&count, 1)
-		return nil
-	}
-
-	start := time.Now()
-	for range 10 {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			r.Run(ctx, fn)
-		}()
-	}
-
-	wg.Wait()
-	duration := time.Since(start)
-
-	if count != 10 {
-		t.Errorf("expected 10 executions, got %d", count)
-	}
-
-	if duration < time.Second {
-		t.Errorf("expected duration to be at least 1 seconds, got %v", duration)
-	}
-}
-
-func TestLimiterActiveJobs(t *testing.T) {
+func TestRunner(t *testing.T) { // Active jobs test
 	ctx := context.Background()
 	limit := 2
 	interval := time.Second
-	stagger := 100 * time.Millisecond
+	stagger := 0 * time.Millisecond
 	r := NewRunner(limit, interval, stagger)
+	count := atomic.Int32{}
+	const expectedCount = 4
 
-	var wg sync.WaitGroup
 	fn := func(ctx context.Context) error {
+		count.Add(1)
 		time.Sleep(500 * time.Millisecond)
 		return nil
 	}
 
-	for range 4 {
+	wg := &sync.WaitGroup{}
+	start := time.Now()
+	for range expectedCount {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
@@ -72,9 +40,21 @@ func TestLimiterActiveJobs(t *testing.T) {
 	}
 
 	wg.Wait()
+	duration := time.Since(start)
+
+	load := count.Load()
+	if load != expectedCount {
+		t.Errorf("expected %d executions, got %d", expectedCount, load)
+	}
+
+	// last two jobs will start at t=1s and finish at t=1.5s
+	expectedDuration := 1*time.Second + 500*time.Millisecond
+	if duration < expectedDuration {
+		t.Errorf("expected duration to be at least %v, got %v", expectedDuration, duration)
+	}
 }
 
-func TestLimiterStagger(t *testing.T) {
+func TestRunnerStagger(t *testing.T) {
 	ctx := context.Background()
 	limit := 10
 	interval := time.Millisecond

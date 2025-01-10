@@ -2,6 +2,7 @@ package limiter
 
 import (
 	"context"
+	"fmt"
 	"sync/atomic"
 	"time"
 )
@@ -9,30 +10,30 @@ import (
 type Runner struct {
 	limit       int
 	interval    time.Duration
-	tokens      chan struct{}
-	tokenReturn chan struct{}
-	activeJobs  atomic.Int32
+	token       <-chan struct{}
+	tokenBucket chan<- struct{}
 	close       chan struct{}
+	activeJobs  atomic.Int32
 }
 
 // NewRunner creates a new Limiter that will start a maximum of limit jobs per interval. Jobs are staggered by stagger duration. Job start order is not guaranteed.
 func NewRunner(limit int, interval, stagger time.Duration) *Runner {
-	tokens := make(chan struct{})
-	tokenReturn := make(chan struct{}, limit)
+	token := make(chan struct{})
+	tokenBucket := make(chan struct{}, limit)
 	close := make(chan struct{})
 
 	// fill the token bucket
 	for range limit {
-		tokenReturn <- struct{}{}
+		tokenBucket <- struct{}{}
 	}
 
-	// stagger the token return
+	// stagger the release of tokens
 	go func() {
 		for {
 			select {
 			case <-close:
 				return
-			case tokens <- <-tokenReturn:
+			case token <- <-tokenBucket:
 				time.Sleep(stagger)
 			}
 		}
@@ -41,8 +42,8 @@ func NewRunner(limit int, interval, stagger time.Duration) *Runner {
 	return &Runner{
 		limit:       limit,
 		interval:    interval,
-		tokens:      tokens,
-		tokenReturn: tokenReturn,
+		token:       token,
+		tokenBucket: tokenBucket,
 		activeJobs:  atomic.Int32{},
 		close:       close,
 	}
@@ -54,13 +55,20 @@ func (r *Runner) Run(ctx context.Context, fn func(ctx context.Context) error) er
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case <-r.tokens:
+	case <-r.close:
+		return fmt.Errorf("limiter.Runner closed")
+	case <-r.token:
 	}
 
-	// release the token after the duration has passed
+	// return the token after the duration has passed
 	go func() {
 		time.Sleep(r.interval)
-		r.tokenReturn <- struct{}{}
+
+		select {
+		case <-r.close:
+			return
+		case r.tokenBucket <- struct{}{}:
+		}
 	}()
 
 	r.activeJobs.Add(1)
@@ -75,7 +83,7 @@ func (r *Runner) ActiveJobs() int32 {
 	return r.activeJobs.Load()
 }
 
-// No more jobs can be started after Close is called
+// Close cleans up any lingering goroutines. No more jobs can be started after Close is called
 func (r *Runner) Close() {
 	r.close <- struct{}{}
 }
