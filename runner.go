@@ -7,6 +7,7 @@ import (
 	"time"
 )
 
+// use NewRunner()
 type Runner struct {
 	limit       int
 	interval    time.Duration
@@ -16,7 +17,7 @@ type Runner struct {
 	activeJobs  atomic.Int32
 }
 
-// NewRunner creates a new Limiter that will start a maximum of limit jobs per interval. Jobs are staggered by stagger duration.
+// NewRunner creates a new Runner that starts a maximum of limit jobs per interval, and staggers the start of jobs
 func NewRunner(limit int, interval, stagger time.Duration) *Runner {
 	token := make(chan struct{})
 	tokenBucket := make(chan struct{}, limit)
@@ -49,7 +50,7 @@ func NewRunner(limit int, interval, stagger time.Duration) *Runner {
 	}
 }
 
-// Run runs the given function if the limiting parameters are met. Run blocks, it is designed to run within a go routine.
+// Run runs the given function if the limiting parameters are met. Run is thread-safe. It blocks until the function returns.
 func (r *Runner) Run(ctx context.Context, fn func(ctx context.Context) error) error {
 	// block until a token is available
 	select {
