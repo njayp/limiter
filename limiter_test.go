@@ -12,7 +12,8 @@ func TestLimiter(t *testing.T) {
 	ctx := context.Background()
 	limit := 5
 	interval := time.Second
-	l := NewLimiter(limit, interval)
+	stagger := 100 * time.Millisecond
+	r := NewRunner(ctx, limit, interval, stagger)
 
 	var wg sync.WaitGroup
 	var count int32
@@ -27,7 +28,7 @@ func TestLimiter(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			l.Run(ctx, fn)
+			r.Run(ctx, fn)
 		}()
 	}
 
@@ -47,7 +48,8 @@ func TestLimiterActiveJobs(t *testing.T) {
 	ctx := context.Background()
 	limit := 2
 	interval := time.Second
-	l := NewLimiter(limit, interval)
+	stagger := 100 * time.Millisecond
+	r := NewRunner(ctx, limit, interval, stagger)
 
 	var wg sync.WaitGroup
 	fn := func(ctx context.Context) error {
@@ -59,15 +61,50 @@ func TestLimiterActiveJobs(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			l.Run(ctx, fn)
+			r.Run(ctx, fn)
 		}()
 	}
 
 	time.Sleep(100 * time.Millisecond)
-	activeJobs := l.ActiveJobs()
+	activeJobs := r.ActiveJobs()
 	if activeJobs != 2 {
 		t.Errorf("expected 2 active jobs, got %d", activeJobs)
 	}
 
 	wg.Wait()
+}
+
+func TestLimiterStagger(t *testing.T) {
+	ctx := context.Background()
+	limit := 10
+	interval := time.Millisecond
+	stagger := time.Second
+	r := NewRunner(ctx, limit, interval, stagger)
+	a := atomic.Int32{}
+
+	fn := func(ctx context.Context) error {
+		a.Add(1)
+		return nil
+	}
+
+	for range 10 {
+		go func() {
+			r.Run(ctx, fn)
+		}()
+	}
+
+	tests := []struct {
+		sleepDuration time.Duration
+		expectedCount int32
+	}{
+		{time.Second + 100*time.Millisecond, 2},
+	}
+
+	for _, tt := range tests {
+		time.Sleep(tt.sleepDuration)
+		got := a.Load()
+		if got != tt.expectedCount {
+			t.Errorf("expected %d executions, got %d", tt.expectedCount, got)
+		}
+	}
 }

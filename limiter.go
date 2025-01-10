@@ -6,53 +6,68 @@ import (
 	"time"
 )
 
-type Limiter struct {
-	limit      int
-	interval   time.Duration
-	tokens     chan struct{}
-	activeJobs *atomic.Int32
+type Runner struct {
+	limit       int
+	interval    time.Duration
+	tokens      chan struct{}
+	tokenReturn chan struct{}
+	activeJobs  atomic.Int32
 }
 
-// NewLimiter creates a new Limiter that will start a maximum of limit jobs per interval. Job start order is not guaranteed.
-func NewLimiter(limit int, interval time.Duration) *Limiter {
-	tokens := make(chan struct{}, limit)
+// NewRunner creates a new Limiter that will start a maximum of limit jobs per interval. Jobs are staggered by stagger duration. Job start order is not guaranteed.
+func NewRunner(ctx context.Context, limit int, interval, stagger time.Duration) *Runner {
+	tokens := make(chan struct{})
+	tokenReturn := make(chan struct{}, limit)
 
 	// fill the token bucket
 	for range limit {
-		tokens <- struct{}{}
+		tokenReturn <- struct{}{}
 	}
 
-	return &Limiter{
-		limit:      limit,
-		interval:   interval,
-		tokens:     tokens,
-		activeJobs: new(atomic.Int32),
+	// stagger the token return
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case tokens <- <-tokenReturn:
+				time.Sleep(stagger)
+			}
+		}
+	}()
+
+	return &Runner{
+		limit:       limit,
+		interval:    interval,
+		tokens:      tokens,
+		tokenReturn: tokenReturn,
+		activeJobs:  atomic.Int32{},
 	}
 }
 
-// Run runs the given function if the limit has not been reached. Run blocks, it is designed to run within a go routine.
-func (l *Limiter) Run(ctx context.Context, fn func(ctx context.Context) error) error {
+// Run runs the given function if the limiting parameters are met. Run blocks, it is designed to run within a go routine.
+func (r *Runner) Run(ctx context.Context, fn func(ctx context.Context) error) error {
 	// block until a token is available
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case <-l.tokens:
+	case <-r.tokens:
 	}
 
 	// release the token after the duration has passed
 	go func() {
-		time.Sleep(l.interval)
-		l.tokens <- struct{}{}
+		time.Sleep(r.interval)
+		r.tokenReturn <- struct{}{}
 	}()
 
-	l.activeJobs.Add(1)
+	r.activeJobs.Add(1)
 	defer func() {
-		l.activeJobs.Add(-1)
+		r.activeJobs.Add(-1)
 	}()
 
 	return fn(ctx)
 }
 
-func (l *Limiter) ActiveJobs() int32 {
-	return l.activeJobs.Load()
+func (r *Runner) ActiveJobs() int32 {
+	return r.activeJobs.Load()
 }
