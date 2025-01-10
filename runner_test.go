@@ -73,18 +73,10 @@ func TestRunnerStagger(t *testing.T) {
 		}()
 	}
 
-	tests := []struct {
-		sleepDuration time.Duration
-		expectedCount int32
-	}{
-		{time.Second + 100*time.Millisecond, 2},
-	}
-
-	for _, tt := range tests {
-		time.Sleep(tt.sleepDuration)
-		got := a.Load()
-		if got != tt.expectedCount {
-			t.Errorf("expected %d executions, got %d", tt.expectedCount, got)
-		}
+	time.Sleep(time.Second + 100*time.Millisecond)
+	got := a.Load()
+	expectedCount := int32(2)
+	if got != expectedCount {
+		t.Errorf("expected %d executions, got %d", expectedCount, got)
 	}
 }

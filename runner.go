@@ -16,7 +16,7 @@ type Runner struct {
 	activeJobs  atomic.Int32
 }
 
-// NewRunner creates a new Limiter that will start a maximum of limit jobs per interval. Jobs are staggered by stagger duration. Job start order is not guaranteed.
+// NewRunner creates a new Limiter that will start a maximum of limit jobs per interval. Jobs are staggered by stagger duration.
 func NewRunner(limit int, interval, stagger time.Duration) *Runner {
 	token := make(chan struct{})
 	tokenBucket := make(chan struct{}, limit)
@@ -62,12 +62,11 @@ func (r *Runner) Run(ctx context.Context, fn func(ctx context.Context) error) er
 
 	// return the token after the duration has passed
 	go func() {
-		time.Sleep(r.interval)
-
 		select {
 		case <-r.close:
 			return
-		case r.tokenBucket <- struct{}{}:
+		case <-time.After(r.interval):
+			r.tokenBucket <- struct{}{}
 		}
 	}()
 
