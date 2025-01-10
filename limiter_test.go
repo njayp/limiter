@@ -13,7 +13,7 @@ func TestLimiter(t *testing.T) {
 	limit := 5
 	interval := time.Second
 	stagger := 100 * time.Millisecond
-	r := NewRunner(ctx, limit, interval, stagger)
+	r := NewRunner(limit, interval, stagger)
 
 	var wg sync.WaitGroup
 	var count int32
@@ -49,7 +49,7 @@ func TestLimiterActiveJobs(t *testing.T) {
 	limit := 2
 	interval := time.Second
 	stagger := 100 * time.Millisecond
-	r := NewRunner(ctx, limit, interval, stagger)
+	r := NewRunner(limit, interval, stagger)
 
 	var wg sync.WaitGroup
 	fn := func(ctx context.Context) error {
@@ -79,7 +79,7 @@ func TestLimiterStagger(t *testing.T) {
 	limit := 10
 	interval := time.Millisecond
 	stagger := time.Second
-	r := NewRunner(ctx, limit, interval, stagger)
+	r := NewRunner(limit, interval, stagger)
 	a := atomic.Int32{}
 
 	fn := func(ctx context.Context) error {

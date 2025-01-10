@@ -12,12 +12,14 @@ type Runner struct {
 	tokens      chan struct{}
 	tokenReturn chan struct{}
 	activeJobs  atomic.Int32
+	close       chan struct{}
 }
 
 // NewRunner creates a new Limiter that will start a maximum of limit jobs per interval. Jobs are staggered by stagger duration. Job start order is not guaranteed.
-func NewRunner(ctx context.Context, limit int, interval, stagger time.Duration) *Runner {
+func NewRunner(limit int, interval, stagger time.Duration) *Runner {
 	tokens := make(chan struct{})
 	tokenReturn := make(chan struct{}, limit)
+	close := make(chan struct{})
 
 	// fill the token bucket
 	for range limit {
@@ -28,7 +30,7 @@ func NewRunner(ctx context.Context, limit int, interval, stagger time.Duration) 
 	go func() {
 		for {
 			select {
-			case <-ctx.Done():
+			case <-close:
 				return
 			case tokens <- <-tokenReturn:
 				time.Sleep(stagger)
@@ -42,6 +44,7 @@ func NewRunner(ctx context.Context, limit int, interval, stagger time.Duration) 
 		tokens:      tokens,
 		tokenReturn: tokenReturn,
 		activeJobs:  atomic.Int32{},
+		close:       close,
 	}
 }
 
@@ -70,4 +73,9 @@ func (r *Runner) Run(ctx context.Context, fn func(ctx context.Context) error) er
 
 func (r *Runner) ActiveJobs() int32 {
 	return r.activeJobs.Load()
+}
+
+// No more jobs can be started after Close is called
+func (r *Runner) Close() {
+	r.close <- struct{}{}
 }
