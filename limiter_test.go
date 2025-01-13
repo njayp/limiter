@@ -40,16 +40,17 @@ func TestRunnerStagger(t *testing.T) {
 	interval := time.Millisecond
 	stagger := time.Second
 	l := NewLimiter(limit, interval, stagger)
-	a := atomic.Int32{}
+	count := atomic.Int32{}
 
 	for range 10 {
 		go func() {
 			l.Wait(ctx)
+			count.Add(1)
 		}()
 	}
 
 	time.Sleep(time.Second + 100*time.Millisecond)
-	got := a.Load()
+	got := count.Load()
 	expectedCount := int32(2)
 	if got != expectedCount {
 		t.Errorf("expected %d executions, got %d", expectedCount, got)
