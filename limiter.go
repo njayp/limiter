@@ -56,7 +56,7 @@ func (r *Limiter) Wait(ctx context.Context) error {
 	case <-r.close:
 		return fmt.Errorf("limiter.Runner closed")
 	case <-r.token:
-		go r.ReturnToken()
+		go r.returnToken()
 		return nil
 	}
 }
@@ -69,7 +69,7 @@ func (r *Limiter) Try(ctx context.Context) error {
 	case <-r.close:
 		return fmt.Errorf("limiter.Runner closed")
 	case <-r.token:
-		go r.ReturnToken()
+		go r.returnToken()
 		return nil
 	// return an error if no token is available
 	default:
@@ -77,7 +77,7 @@ func (r *Limiter) Try(ctx context.Context) error {
 	}
 }
 
-func (r *Limiter) ReturnToken() {
+func (r *Limiter) returnToken() {
 	select {
 	case <-r.close:
 		return
