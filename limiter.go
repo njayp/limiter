@@ -2,7 +2,6 @@ package limiter
 
 import (
 	"context"
-	"fmt"
 	"time"
 )
 
@@ -54,7 +53,7 @@ func (r *Limiter) Wait(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-r.close:
-		return fmt.Errorf("limiter.Runner closed")
+		return LimiterClosedError
 	case <-r.token:
 		go r.returnToken()
 		return nil
@@ -67,13 +66,13 @@ func (r *Limiter) Try(ctx context.Context) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	case <-r.close:
-		return fmt.Errorf("limiter.Runner closed")
+		return LimiterClosedError
 	case <-r.token:
 		go r.returnToken()
 		return nil
 	// return an error if no token is available
 	default:
-		return fmt.Errorf("no token available")
+		return NoAvailableTokenError
 	}
 }
 
