@@ -13,10 +13,10 @@ type Limiter struct {
 	semaphore   *concurrent.Semaphore
 }
 
-func NewLimiter(limit int, interval time.Duration, maxConn int) *Limiter {
+func NewLimiter(limit int, interval time.Duration, concurrentLimit int) *Limiter {
 	return &Limiter{
 		rateLimiter: rate.NewLimiter(limit, interval),
-		semaphore:   concurrent.NewSemaphore(maxConn),
+		semaphore:   concurrent.NewSemaphore(concurrentLimit),
 	}
 }
 
