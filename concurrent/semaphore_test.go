@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func TestToken(t *testing.T) {
+func TestSemaphore(t *testing.T) {
 	ctx := context.Background()
 	limit := 2
 	sem := NewSemaphore(limit)
@@ -32,6 +32,7 @@ func TestToken(t *testing.T) {
 		go func() {
 			// test should take at least 1 second to complete
 			time.Sleep(time.Second)
+
 			for _, token := range tokens {
 				token.Release() // release all tokens
 			}
