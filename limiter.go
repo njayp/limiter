@@ -3,89 +3,38 @@ package limiter
 import (
 	"context"
 	"time"
+
+	"github.com/njayp/limiter/concurrent"
+	"github.com/njayp/limiter/rate"
 )
 
-// use NewLimiter()
 type Limiter struct {
-	limit       int
-	interval    time.Duration
-	token       <-chan struct{}
-	tokenBucket chan<- struct{}
-	close       chan struct{}
+	rateLimiter *rate.Limiter
+	semaphore   *concurrent.Semaphore
 }
 
-// NewLimiter impl a token bucket that will allow a maximum number of function calls within a given interval.
-func NewLimiter(limit int, interval, stagger time.Duration) *Limiter {
-	token := make(chan struct{})
-	tokenBucket := make(chan struct{}, limit)
-	close := make(chan struct{})
-
-	// fill the token bucket
-	for range limit {
-		tokenBucket <- struct{}{}
-	}
-
-	// stagger the release of tokens
-	go func() {
-		for {
-			select {
-			case <-close:
-				return
-			case token <- <-tokenBucket:
-				time.Sleep(stagger)
-			}
-		}
-	}()
-
+func NewLimiter(limit int, interval time.Duration, maxConn int) *Limiter {
 	return &Limiter{
-		limit:       limit,
-		interval:    interval,
-		token:       token,
-		tokenBucket: tokenBucket,
-		close:       close,
+		rateLimiter: rate.NewLimiter(limit, interval),
+		semaphore:   concurrent.NewSemaphore(maxConn),
 	}
 }
 
-// Wait blocks until a token is available.
-func (r *Limiter) Wait(ctx context.Context) error {
-	// block until a token is available
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-r.close:
-		return LimiterClosedError
-	case <-r.token:
-		go r.returnToken()
-		return nil
+func (l *Limiter) Wait(ctx context.Context) (*concurrent.Token, error) {
+	token, err := l.semaphore.Wait(ctx)
+	if err != nil {
+		return nil, err
 	}
+
+	err = l.rateLimiter.Wait(ctx)
+	if err != nil {
+		token.Release()
+		return nil, err
+	}
+
+	return token, nil
 }
 
-// Try returns immediately with an error if a token is not available. If a token is available, it is consumed and nil is returned.
-func (r *Limiter) Try(ctx context.Context) error {
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case <-r.close:
-		return LimiterClosedError
-	case <-r.token:
-		go r.returnToken()
-		return nil
-	// return an error if no token is available
-	default:
-		return NoAvailableTokenError
-	}
-}
-
-func (r *Limiter) returnToken() {
-	select {
-	case <-r.close:
-		return
-	case <-time.After(r.interval):
-		r.tokenBucket <- struct{}{}
-	}
-}
-
-// Close cleans up any lingering goroutines. No more jobs can be started after Close is called
-func (r *Limiter) Close() {
-	close(r.close)
+func (l *Limiter) Close() {
+	l.rateLimiter.Close()
 }
