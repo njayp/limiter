@@ -7,10 +7,10 @@ import (
 
 type ClientOpts func(*ClientProps)
 
-// WithLimit sets the maximum number of requests per second.
-func WithLimit(limit int) ClientOpts {
+// WithCount sets the maximum number of requests per second.
+func WithCount(count int) ClientOpts {
 	return func(props *ClientProps) {
-		props.Limit = limit
+		props.Count = count
 	}
 }
 

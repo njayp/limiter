@@ -14,13 +14,13 @@ type Limiter struct {
 }
 
 // NewLimiter impl a token bucket that will allow a maximum number of function calls within a given interval.
-func NewLimiter(limit int, interval time.Duration) *Limiter {
+func NewLimiter(count int, interval time.Duration) *Limiter {
 	token := make(chan struct{})
-	tokenBucket := make(chan struct{}, limit)
+	tokenBucket := make(chan struct{}, count)
 	close := make(chan struct{})
 
 	// fill the token bucket
-	for range limit {
+	for range count {
 		tokenBucket <- struct{}{}
 	}
 

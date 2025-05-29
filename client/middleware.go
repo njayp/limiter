@@ -19,7 +19,7 @@ type MiddlewareRoundTripper struct {
 func NewMiddlewareRoundTripper(props *ClientProps) *MiddlewareRoundTripper {
 	return &MiddlewareRoundTripper{
 		Original: props.RoundTripper,
-		Limiter:  rate.NewLimiter(props.Limit, props.Interval),
+		Limiter:  rate.NewLimiter(props.Count, props.Interval),
 	}
 }
 

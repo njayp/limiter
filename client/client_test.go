@@ -6,7 +6,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	client := NewHttpClient(WithLimit(2))
+	client := NewHttpClient(WithCount(2))
 	start := time.Now()
 
 	for range 3 {
