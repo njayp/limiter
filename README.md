@@ -12,7 +12,15 @@ go get github.com/njayp/limiter
 ```
 
 ### Client Examples
-Prebuilt middleware is now available. It is as easy as 
+Prebuilt middleware is now available. The following client sends 2 requests/second.
+
+```go
+client := limiter.NewClient(WithCount(2))
+
+for range 3 {
+	client.Get("https://example.com")
+}
+```
 
 ### Rate Limiter Example
 As a basic example, let's send 1000 requests at 200 requests per minute.
