@@ -31,3 +31,10 @@ func WithRoundTripper(roundTripper http.RoundTripper) MiddlewareOpts {
 		props.RoundTripper = roundTripper
 	}
 }
+
+// WithStagger sets the time to wait before releasing the next token.
+func WithStagger(stagger time.Duration) MiddlewareOpts {
+	return func(props *MiddlewareProps) {
+		props.Stagger = stagger
+	}
+}

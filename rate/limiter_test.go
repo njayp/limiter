@@ -11,7 +11,7 @@ func TestRunner(t *testing.T) {
 	ctx := context.Background()
 	limit := 2
 	interval := time.Second
-	l := NewLimiter(limit, interval)
+	l := NewLimiter(limit, interval, 50*time.Millisecond)
 	wg := &sync.WaitGroup{}
 	start := time.Now()
 

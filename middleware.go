@@ -10,8 +10,8 @@ import (
 // MiddlewareRoundTripper is a middleware for http.RoundTripper
 // TODO different limiter per host
 type MiddlewareRoundTripper struct {
-	Original http.RoundTripper
-	Limiter  *rate.Limiter
+	Next    http.RoundTripper
+	Limiter *rate.Limiter
 }
 
 // NewMiddlewareRoundTripper creates a new MiddlewareRoundTripper with the given rate limit and interval.
@@ -20,8 +20,8 @@ func NewMiddlewareRoundTripper(opts ...MiddlewareOpts) *MiddlewareRoundTripper {
 	props := NewMiddlewareProps(opts...)
 
 	return &MiddlewareRoundTripper{
-		Original: props.RoundTripper,
-		Limiter:  rate.NewLimiter(props.Count, props.Interval),
+		Next:    props.RoundTripper,
+		Limiter: rate.NewLimiter(props.Count, props.Interval, props.Stagger),
 	}
 }
 
@@ -37,6 +37,6 @@ func (c *MiddlewareRoundTripper) RoundTrip(req *http.Request) (*http.Response, e
 		"url", req.URL.String(),
 	)
 
-	// Proceed with the actual request
-	return c.Original.RoundTrip(req)
+	// Proceed with the request
+	return c.Next.RoundTrip(req)
 }

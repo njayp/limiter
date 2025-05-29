@@ -10,6 +10,8 @@ type MiddlewareProps struct {
 	Count int
 	// Interval is the time interval for the rate limit. The default is 1 second.
 	Interval time.Duration
+	// Stagger is the time to wait before releasing the next token. The default is 50 milliseconds.
+	Stagger time.Duration
 	// RoundTripper is the http.RoundTripper to use for the client. The default is http.DefaultTransport.
 	RoundTripper http.RoundTripper
 }
