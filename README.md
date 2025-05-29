@@ -11,7 +11,10 @@ Limiter is designed to facilitate working with rate-limited APIs. It impl a toke
 go get github.com/njayp/limiter
 ```
 
-### Examples
+### Client Examples
+Prebuilt middleware is now available. It is as easy as 
+
+### Rate Limiter Example
 As a basic example, let's send 1000 requests at 200 requests per minute.
 ```go
 l := limiter.NewLimiter(200, time.Minute, 100*time.Millisecond)

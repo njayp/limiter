@@ -1,11 +1,11 @@
-package client
+package limiter
 
 import (
 	"net/http"
 	"time"
 )
 
-type ClientProps struct {
+type MiddlewareProps struct {
 	// Count is the maximum number of requests per interval. The default is 10.
 	Count int
 	// Interval is the time interval for the rate limit. The default is 1 second.
@@ -14,9 +14,9 @@ type ClientProps struct {
 	RoundTripper http.RoundTripper
 }
 
-// NewClientProps creates a new ClientProps with default values.
-func NewClientProps(opts ...ClientOpts) *ClientProps {
-	props := &ClientProps{
+// NewMiddlewareProps creates a new ClientProps with default values.
+func NewMiddlewareProps(opts ...MiddlewareOpts) *MiddlewareProps {
+	props := &MiddlewareProps{
 		Count:        10,                    // default limit
 		Interval:     time.Second,           // default interval
 		RoundTripper: http.DefaultTransport, // default RoundTripper
@@ -27,13 +27,4 @@ func NewClientProps(opts ...ClientOpts) *ClientProps {
 	}
 
 	return props
-}
-
-// NewHttpClient creates a new http.Client with the given options.
-func NewHttpClient(opts ...ClientOpts) *http.Client {
-	props := NewClientProps(opts...)
-
-	return &http.Client{
-		Transport: NewMiddlewareRoundTripper(props),
-	}
 }

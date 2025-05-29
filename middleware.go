@@ -1,10 +1,10 @@
-package client
+package limiter
 
 import (
 	"log/slog"
 	"net/http"
 
-	"github.com/njayp/limiter/client/rate"
+	"github.com/njayp/limiter/rate"
 )
 
 // MiddlewareRoundTripper is a middleware for http.RoundTripper
@@ -16,7 +16,9 @@ type MiddlewareRoundTripper struct {
 
 // NewMiddlewareRoundTripper creates a new MiddlewareRoundTripper with the given rate limit and interval.
 // use the default http.RoundTripper
-func NewMiddlewareRoundTripper(props *ClientProps) *MiddlewareRoundTripper {
+func NewMiddlewareRoundTripper(opts ...MiddlewareOpts) *MiddlewareRoundTripper {
+	props := NewMiddlewareProps(opts...)
+
 	return &MiddlewareRoundTripper{
 		Original: props.RoundTripper,
 		Limiter:  rate.NewLimiter(props.Count, props.Interval),

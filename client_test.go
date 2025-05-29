@@ -1,4 +1,4 @@
-package client
+package limiter
 
 import (
 	"testing"
@@ -6,7 +6,7 @@ import (
 )
 
 func TestClient(t *testing.T) {
-	client := NewHttpClient(WithCount(2))
+	client := NewClient(WithCount(2))
 	start := time.Now()
 
 	for range 3 {
