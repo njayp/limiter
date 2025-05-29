@@ -7,7 +7,6 @@ import (
 
 // use NewLimiter()
 type Limiter struct {
-	limit       int
 	interval    time.Duration
 	token       <-chan struct{}
 	tokenBucket chan<- struct{}
@@ -40,7 +39,6 @@ func NewLimiter(limit int, interval time.Duration) *Limiter {
 	}()
 
 	return &Limiter{
-		limit:       limit,
 		interval:    interval,
 		token:       token,
 		tokenBucket: tokenBucket,
